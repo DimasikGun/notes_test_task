@@ -1,0 +1,24 @@
+[project]
+name = "notes-test-task"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Dima Saveliev",email = "dp236955@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[all] (>=0.115.11,<0.116.0)",
+    "sqlalchemy (>=2.0.39,<3.0.0)",
+    "asyncpg (>=0.30.0,<0.31.0)",
+    "alembic (>=1.15.1,<2.0.0)",
+    "ruff (>=0.9.10,<0.10.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false

@@ -3,7 +3,10 @@ from datetime import timedelta
 
 import jwt
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.auth.controllers import create_user, get_user
+from api.v1.auth.schemas import UserSchema
 from api.v1.auth.security_utils import (
     decode_jwt,
     encode_jwt,
@@ -65,3 +68,18 @@ def test_validate_password(password: str):
     wrong_password = "WrongPassword123!"
 
     assert not validate_password(wrong_password, hashed)
+
+
+@pytest.mark.asyncio
+async def test_create_and_get_user(
+    db_session: AsyncSession, user_schema_in: UserSchema
+):
+    user_created = await create_user(db_session, user_schema_in)
+
+    assert user_created is not None
+    assert user_created.username == user_schema_in.username
+
+    user_get = await get_user(db_session, user_created.id)
+
+    assert user_get is not None
+    assert user_get.username == user_get.username

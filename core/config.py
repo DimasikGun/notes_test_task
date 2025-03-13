@@ -15,6 +15,14 @@ class RunConfig(BaseModel):
         return f"http://{self.host}:{self.port}"
 
 
+class JWT(BaseModel):
+    private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
+    public_key_path: Path = BASE_DIR / "certs" / "jwt-public.pem"
+    algorithm: str = "RS256"
+    access_token_expires_minutes: int = 30
+    refresh_token_expires_days: int = 30
+
+
 class DbConfig(BaseModel):
     url: PostgresDsn
     echo: bool = False
@@ -38,6 +46,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="_",
     )
     db: DbConfig
+    jwt: JWT = JWT()
     run: RunConfig = RunConfig()
 
 

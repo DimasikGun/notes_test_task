@@ -1,15 +1,15 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, func, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
 from core.database.mixins import BaseNotesMixin
 
 if TYPE_CHECKING:
-    from .user import User
     from .notes_history import NoteHistory
+    from .user import User
 
 
 class Note(BaseNotesMixin, Base):

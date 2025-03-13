@@ -25,6 +25,9 @@ class JWT(BaseModel):
 
 class DbConfig(BaseModel):
     url: PostgresDsn
+    test_url: PostgresDsn
+    test_admin_url: PostgresDsn
+    test_name: str
     echo: bool = False
     echo_pool: bool = False
     pool_size: int = 50
@@ -43,7 +46,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
         case_sensitive=False,
-        env_nested_delimiter="_",
+        env_nested_delimiter="__",
     )
     db: DbConfig
     jwt: JWT = JWT()

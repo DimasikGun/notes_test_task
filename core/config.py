@@ -21,6 +21,9 @@ class JWT(BaseModel):
     algorithm: str = "RS256"
     access_token_expires_minutes: int = 30
     refresh_token_expires_days: int = 30
+    TOKEN_TYPE_FIELD: str = "type"
+    ACCESS_TOKEN_TYPE: str = "access"
+    REFRESH_TOKEN_TYPE: str = "refresh"
 
 
 class DbConfig(BaseModel):

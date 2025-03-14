@@ -15,3 +15,8 @@ async def create_user(session: AsyncSession, user_in: UserSchema) -> User:
     session.add(user)
     await session.commit()
     return user
+
+
+async def get_user_by_username(session: AsyncSession, username: str) -> User:
+    stmt = select(User).where(User.username == username)
+    return await session.scalar(stmt)

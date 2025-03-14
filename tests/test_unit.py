@@ -5,7 +5,8 @@ import jwt
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.auth.controllers import create_user, get_user
+from api.utils import validation_error
+from api.v1.auth.controllers import create_user, get_user, get_user_by_username
 from api.v1.auth.schemas import UserSchema
 from api.v1.auth.security_utils import (
     decode_jwt,
@@ -83,3 +84,27 @@ async def test_create_and_get_user(
 
     assert user_get is not None
     assert user_get.username == user_get.username
+
+    user_get_by_username = await get_user_by_username(db_session, user_created.username)
+
+    assert user_get_by_username is not None
+    assert user_get_by_username.id == user_created.id
+
+
+def test_validation_error():
+    loc = ["field"]
+    msg = "Invalid value"
+    input_value = "wrong_input"
+    reason = "Must be a positive integer"
+    expected = {
+        "detail": [
+            {
+                "type": "value_error",
+                "loc": loc,
+                "msg": msg,
+                "input": input_value,
+                "ctx": {"reason": reason},
+            }
+        ]
+    }
+    assert validation_error(loc, msg, input_value, reason) == expected

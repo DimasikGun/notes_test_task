@@ -2,13 +2,15 @@ from typing import AsyncGenerator
 
 import pytest
 import sqlalchemy
+from httpx import ASGITransport, AsyncClient
 from pytest_asyncio import is_async_test
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from api.v1.auth.schemas import UserSchema
 from core.config import settings
 from core.database import Base
-from core.database.db_helper import DatabaseHelper
+from core.database.db_helper import DatabaseHelper, db_helper
+from main import main_app
 
 
 def pytest_collection_modifyitems(items):
@@ -55,7 +57,9 @@ async def create_test_database() -> AsyncGenerator[None, None]:
 
 
 @pytest.fixture(scope="session")
-async def db_helper(create_test_database: None) -> AsyncGenerator[DatabaseHelper, None]:
+async def test_db_helper(
+    create_test_database: None,
+) -> AsyncGenerator[DatabaseHelper, None]:
     """Initialize the database helper."""
     helper = DatabaseHelper(
         url=str(settings.db.test_url),
@@ -77,9 +81,11 @@ async def db_helper(create_test_database: None) -> AsyncGenerator[DatabaseHelper
 
 
 @pytest.fixture(scope="function")
-async def db_session(db_helper: DatabaseHelper) -> AsyncGenerator[AsyncSession, None]:
+async def db_session(
+    test_db_helper: DatabaseHelper,
+) -> AsyncGenerator[AsyncSession, None]:
     """Get database session for tests."""
-    async with db_helper.factory() as session:
+    async with test_db_helper.factory() as session:
         yield session
         await session.rollback()
 
@@ -87,3 +93,19 @@ async def db_session(db_helper: DatabaseHelper) -> AsyncGenerator[AsyncSession, 
 @pytest.fixture()
 def user_schema_in() -> UserSchema:
     return UserSchema(username="user123", password="StrongTestPassword123!")
+
+
+@pytest.fixture()
+def user_dict_in_weak_pass() -> dict:
+    return {"username": "user123", "password": "weak"}
+
+
+@pytest.fixture(scope="function")
+async def api_client(test_db_helper) -> AsyncClient:
+    async with AsyncClient(
+        transport=ASGITransport(app=main_app), base_url="http://test"
+    ) as api_client:
+        main_app.dependency_overrides[db_helper.session_getter] = (
+            test_db_helper.session_getter
+        )
+        yield api_client

@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class NoteHistory(BaseNotesMixin, Base):
-    note_id: Mapped[int] = mapped_column(ForeignKey("note.id"), nullable=False)
+    note_id: Mapped[int] = mapped_column(
+        ForeignKey("note.id", ondelete="CASCADE"), nullable=False
+    )
 
     note: Mapped["Note"] = relationship("Note", back_populates="note_history")

@@ -3,6 +3,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from api.v1.auth.schemas import UserSchema
+from api.v1.notes.schemas import CreateNoteSchema, UpdateNoteSchema
 
 API_V1_PREFIX = "/api/v1"
 AUTH_PREFIX = "/auth"
@@ -118,3 +119,212 @@ async def test_refresh_failed(api_client: AsyncClient):
         headers={"Authorization": "Bearer invalid-token"},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.asyncio
+async def test_create_note_ok(api_client: AsyncClient):
+    note_data = CreateNoteSchema(title="Test Note", text="Test content")
+    user_schema_in = UserSchema(
+        username="user_create_note_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    response = await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    assert data["title"] == note_data.title
+    assert data["text"] == note_data.text
+
+
+@pytest.mark.asyncio
+async def test_get_all_notes_ok(api_client: AsyncClient):
+    user_schema_in = UserSchema(
+        username="user_get_all_notes_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    note_data_1 = CreateNoteSchema(title="Test Note 1", text="Content 1")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_1.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    note_data_2 = CreateNoteSchema(title="Test Note 2", text="Content 2")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_2.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # Now, get all notes
+    response = await api_client.get(
+        f"{API_V1_PREFIX}/notes/",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) >= 2
+
+
+@pytest.mark.asyncio
+async def test_get_single_note_ok(api_client: AsyncClient):
+    note_data = CreateNoteSchema(title="Test Note", text="Test content")
+
+    user_schema_in = UserSchema(
+        username="user_get_single_note_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    response = await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    note_id = response.json()["id"]
+
+    response = await api_client.get(
+        f"{API_V1_PREFIX}/notes/{note_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["id"] == note_id
+    assert data["title"] == note_data.title
+    assert data["text"] == note_data.text
+
+
+@pytest.mark.asyncio
+async def test_update_note_ok(api_client: AsyncClient):
+    user_schema_in = UserSchema(
+        username="user_upd_note_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    note_data = CreateNoteSchema(title="Test Note", text="Test content")
+
+    # Create the note
+    response = await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    note_id = response.json()["id"]
+
+    # Update the note
+    update_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
+    response = await api_client.patch(
+        f"{API_V1_PREFIX}/notes/{note_id}",
+        json=update_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["id"] == note_id
+    assert data["title"] == update_data.title
+    assert data["text"] == update_data.text
+
+
+@pytest.mark.asyncio
+async def test_delete_note_ok(api_client: AsyncClient):
+    note_data = CreateNoteSchema(title="Test Note", text="Test content")
+
+    user_schema_in = UserSchema(
+        username="user_del_note_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+
+    response = await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    note_id = response.json()["id"]
+
+    response = await api_client.delete(
+        f"{API_V1_PREFIX}/notes/{note_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    response = await api_client.get(
+        f"{API_V1_PREFIX}/notes/{note_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_get_note_history_ok(api_client: AsyncClient):
+    note_data = CreateNoteSchema(title="Test Note", text="Test content")
+
+    user_schema_in = UserSchema(
+        username="user_get_note_with_history_ok", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+
+    response = await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    note_id = response.json()["id"]
+
+    update_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
+    await api_client.patch(
+        f"{API_V1_PREFIX}/notes/{note_id}",
+        json=update_data.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    response = await api_client.get(
+        f"{API_V1_PREFIX}/notes/history/{note_id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["note_history"][0]["note_id"] == note_id

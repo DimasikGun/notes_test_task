@@ -122,17 +122,22 @@ async def test_refresh_failed(api_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_note_ok(api_client: AsyncClient):
+async def test_create_note_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
+
     note_data = CreateNoteSchema(title="Test Note", text="Test content")
     user_schema_in = UserSchema(
         username="user_create_note_ok", password="StrongTestPassword123!"
     )
+
     response = await api_client.post(
         f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
     )
     assert response.status_code == status.HTTP_201_CREATED
-    data = response.json()
-    token = data["access_token"]
+    token = response.json()["access_token"]
+
     response = await api_client.post(
         f"{API_V1_PREFIX}/notes/",
         json=note_data.model_dump(),
@@ -141,12 +146,18 @@ async def test_create_note_ok(api_client: AsyncClient):
 
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
+
     assert data["title"] == note_data.title
     assert data["text"] == note_data.text
+    assert data["summarization"] == "Mocked summary"
 
 
 @pytest.mark.asyncio
-async def test_get_all_notes_ok(api_client: AsyncClient):
+async def test_get_all_notes_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
+
     user_schema_in = UserSchema(
         username="user_get_all_notes_ok", password="StrongTestPassword123!"
     )
@@ -178,10 +189,15 @@ async def test_get_all_notes_ok(api_client: AsyncClient):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert len(data) >= 2
+    assert data[0]["summarization"] == "Mocked summary"
+    assert data[1]["summarization"] == "Mocked summary"
 
 
 @pytest.mark.asyncio
-async def test_get_single_note_ok(api_client: AsyncClient):
+async def test_get_single_note_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
     note_data = CreateNoteSchema(title="Test Note", text="Test content")
 
     user_schema_in = UserSchema(
@@ -212,10 +228,15 @@ async def test_get_single_note_ok(api_client: AsyncClient):
     assert data["id"] == note_id
     assert data["title"] == note_data.title
     assert data["text"] == note_data.text
+    assert data["summarization"] == "Mocked summary"
 
 
 @pytest.mark.asyncio
-async def test_update_note_ok(api_client: AsyncClient):
+async def test_update_note_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization",
+        side_effect=["Mocked summary", "Updated mocked summary"],
+    )
     user_schema_in = UserSchema(
         username="user_upd_note_ok", password="StrongTestPassword123!"
     )
@@ -235,7 +256,9 @@ async def test_update_note_ok(api_client: AsyncClient):
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    note_id = response.json()["id"]
+    data = response.json()
+    assert data["summarization"] == "Mocked summary"
+    note_id = data["id"]
 
     # Update the note
     update_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
@@ -250,10 +273,14 @@ async def test_update_note_ok(api_client: AsyncClient):
     assert data["id"] == note_id
     assert data["title"] == update_data.title
     assert data["text"] == update_data.text
+    assert data["summarization"] == "Updated mocked summary"
 
 
 @pytest.mark.asyncio
-async def test_delete_note_ok(api_client: AsyncClient):
+async def test_delete_note_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
     note_data = CreateNoteSchema(title="Test Note", text="Test content")
 
     user_schema_in = UserSchema(
@@ -291,7 +318,11 @@ async def test_delete_note_ok(api_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_note_history_ok(api_client: AsyncClient):
+async def test_get_note_history_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization",
+        side_effect=["Mocked summary", "Updated mocked summary"],
+    )
     note_data = CreateNoteSchema(title="Test Note", text="Test content")
 
     user_schema_in = UserSchema(
@@ -311,7 +342,9 @@ async def test_get_note_history_ok(api_client: AsyncClient):
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    note_id = response.json()["id"]
+    data = response.json()
+    assert data["summarization"] == "Mocked summary"
+    note_id = data["id"]
 
     update_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
     await api_client.patch(
@@ -328,3 +361,4 @@ async def test_get_note_history_ok(api_client: AsyncClient):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["note_history"][0]["note_id"] == note_id
+    assert data["summarization"] == "Updated mocked summary"

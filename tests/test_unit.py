@@ -124,7 +124,8 @@ async def test_create_and_get_note(db_session: AsyncSession):
     user_schema_in = UserSchema(username="user_note", password="StrongTestPassword123!")
     user = await create_user(db_session, user_schema_in)
     note_data = CreateNoteSchema(title="Test Note", text="This is a test note")
-    note_created = await create_note(db_session, note_data, user.id)
+    summarization = "some summarization"
+    note_created = await create_note(db_session, note_data, user.id, summarization)
 
     assert note_created is not None
     assert note_created.title == note_data.title
@@ -146,8 +147,10 @@ async def test_get_user_notes(db_session: AsyncSession):
     user = await create_user(db_session, user_schema_in)
     note_data_1 = CreateNoteSchema(title="Note 1", text="First note")
     note_data_2 = CreateNoteSchema(title="Note 2", text="Second note")
-    await create_note(db_session, note_data_1, user.id)
-    await create_note(db_session, note_data_2, user.id)
+    summarization1 = "some summarization"
+    summarization2 = "some summarization"
+    await create_note(db_session, note_data_1, user.id, summarization1)
+    await create_note(db_session, note_data_2, user.id, summarization2)
 
     notes = await get_user_notes(db_session, user.id)
     assert len(notes) == 2
@@ -161,11 +164,13 @@ async def test_create_and_get_note_history(db_session: AsyncSession):
     )
     user = await create_user(db_session, user_schema_in)
     note_data = CreateNoteSchema(title="Original Note", text="Content")
-    note = await create_note(db_session, note_data, user.id)
+    summarization1 = "some summarization"
+    note = await create_note(db_session, note_data, user.id, summarization1)
     old_note = NoteSchema.model_validate(note, from_attributes=True)
     new_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
+    summarization2 = "some summarization"
     note_with_history = await update_note_and_create_history(
-        db_session, note, new_data, old_note
+        db_session, note, new_data, old_note, summarization2
     )
 
     assert note_with_history is not None
@@ -190,11 +195,13 @@ async def test_update_note(db_session: AsyncSession):
     )
     user = await create_user(db_session, user_schema_in)
     note_data = CreateNoteSchema(title="Initial Title", text="Initial content")
-    note = await create_note(db_session, note_data, user.id)
+    summarization1 = "some summarization"
+    note = await create_note(db_session, note_data, user.id, summarization1)
     old_note = NoteSchema.model_validate(note, from_attributes=True)
     update_data = UpdateNoteSchema(title="Updated Title", text="Updated content")
+    summarization2 = "some summarization"
     updated_note = await update_note_and_create_history(
-        db_session, note, update_data, old_note
+        db_session, note, update_data, old_note, summarization2
     )
 
     assert updated_note is not None
@@ -209,7 +216,8 @@ async def test_delete_note(db_session: AsyncSession):
     )
     user = await create_user(db_session, user_schema_in)
     note_data = CreateNoteSchema(title="Note to delete", text="This will be deleted")
-    note = await create_note(db_session, note_data, user.id)
+    summarization = "some summarization"
+    note = await create_note(db_session, note_data, user.id, summarization)
 
     delete_result = await delete_note(db_session, note.id, user.id)
     assert delete_result is True

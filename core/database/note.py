@@ -18,6 +18,8 @@ class Note(BaseNotesMixin, Base):
     )
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
 
+    summarization: Mapped[str] = mapped_column(nullable=False)
+
     user: Mapped["User"] = relationship("User", back_populates="notes")
     note_history: Mapped[list["NoteHistory"]] = relationship(
         "NoteHistory",

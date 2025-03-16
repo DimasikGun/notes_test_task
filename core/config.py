@@ -45,6 +45,17 @@ class DbConfig(BaseModel):
     }
 
 
+class AIConfig(BaseModel):
+    api_key: str
+    default_model: str = "gemini-2.0-flash"
+    summarization_prompt: str = (
+        "You are an AI designed to generate concise summaries of notes. "
+        "Given a note's title and text, provide the shortest possible summary "
+        "while preserving the key meaning. Maintain the original language of the note. "
+        "Avoid unnecessary details and keep the response as brief as possible."
+    )
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -52,6 +63,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
     )
     db: DbConfig
+    ai: AIConfig
     jwt: JWT = JWT()
     run: RunConfig = RunConfig()
 

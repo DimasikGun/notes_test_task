@@ -17,6 +17,7 @@ class NoteSchema(CreateNoteSchema):
     id: int
     created_at: datetime
     updated_at: datetime
+    summarization: str
     user_id: int
 
 
@@ -26,9 +27,5 @@ class NoteHistorySchema(CreateNoteSchema):
     note_id: int
 
 
-class NoteSchemaWithHistory(CreateNoteSchema):
-    id: int
-    created_at: datetime
-    updated_at: datetime
-    user_id: int
+class NoteSchemaWithHistory(NoteSchema):
     note_history: list[NoteHistorySchema]

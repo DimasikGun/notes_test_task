@@ -1,4 +1,5 @@
 from fastapi import Depends
+from google import genai
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.auth.helpers import get_current_user_by_access_token
@@ -12,8 +13,19 @@ from api.v1.notes.controllers import (
 )
 from api.v1.notes.exceptions import invalid_upd_found_exc, note_not_found_exc
 from api.v1.notes.schemas import CreateNoteSchema, NoteSchema, UpdateNoteSchema
+from core.config import settings
 from core.database import Note, User
 from core.database.db_helper import db_helper
+
+ai_client = genai.Client(api_key=settings.ai.api_key)
+
+
+async def create_note_summarization(title: str, text: str):
+    response = ai_client.models.generate_content(
+        model=settings.ai.default_model,
+        contents=f"{settings.ai.summarization_prompt} Title: {title} Text: {text}",
+    )
+    return response.text.strip()
 
 
 async def create_note_with_jwt(
@@ -21,7 +33,8 @@ async def create_note_with_jwt(
     user: User = Depends(get_current_user_by_access_token),
     session: AsyncSession = Depends(db_helper.session_getter),
 ) -> Note:
-    note = await create_note(session, note_in, user.id)
+    summarization = await create_note_summarization(note_in.title, note_in.text)
+    note = await create_note(session, note_in, user.id, summarization)
     return note
 
 
@@ -67,7 +80,10 @@ async def update_users_note_with_jwt(
         raise invalid_upd_found_exc
     if note_in.title == old_note.title and note_in.text == old_note.text:
         raise invalid_upd_found_exc
-    note = await update_note_and_create_history(session, note, note_in, old_note)
+    summarization = await create_note_summarization(note_in.title, note_in.text)
+    note = await update_note_and_create_history(
+        session, note, note_in, old_note, summarization
+    )
     return note
 
 

@@ -21,10 +21,11 @@ async def get_user_notes(session: AsyncSession, user_id: int) -> list[Note]:
 
 
 async def create_note(
-    session: AsyncSession, note_in: CreateNoteSchema, user_id: int
+    session: AsyncSession, note_in: CreateNoteSchema, user_id: int, summarization: str
 ) -> Note:
     note_dict = note_in.model_dump(exclude_none=True)
     note_dict["user_id"] = user_id
+    note_dict["summarization"] = summarization
     note = Note(**note_dict)
     session.add(note)
     await session.commit()
@@ -43,12 +44,18 @@ async def get_note_history(session: AsyncSession, note_id: int) -> list[NoteHist
 
 
 async def update_note_and_create_history(
-    session: AsyncSession, note: Note, note_in: UpdateNoteSchema, old_note: NoteSchema
+    session: AsyncSession,
+    note: Note,
+    note_in: UpdateNoteSchema,
+    old_note: NoteSchema,
+    summarization: str,
 ) -> Note:
     now = datetime.now(UTC)
     update_data = note_in.model_dump(exclude_unset=True)
     await session.execute(
-        update(Note).where(Note.id == old_note.id).values(**update_data, updated_at=now)
+        update(Note)
+        .where(Note.id == old_note.id)
+        .values(**update_data, updated_at=now, summarization=summarization)
     )
     note_history = NoteHistory(
         created_at=now,

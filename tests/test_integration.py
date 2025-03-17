@@ -153,7 +153,7 @@ async def test_create_note_ok(api_client: AsyncClient, mocker):
 
 
 @pytest.mark.asyncio
-async def test_get_all_notes_ok(api_client: AsyncClient, mocker):
+async def test_get_all_user_notes_ok(api_client: AsyncClient, mocker):
     mocker.patch(
         "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
     )
@@ -180,7 +180,6 @@ async def test_get_all_notes_ok(api_client: AsyncClient, mocker):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    # Now, get all notes
     response = await api_client.get(
         f"{API_V1_PREFIX}/notes/",
         headers={"Authorization": f"Bearer {token}"},
@@ -260,7 +259,6 @@ async def test_update_note_ok(api_client: AsyncClient, mocker):
     assert data["summarization"] == "Mocked summary"
     note_id = data["id"]
 
-    # Update the note
     update_data = UpdateNoteSchema(title="Updated Note", text="Updated content")
     response = await api_client.patch(
         f"{API_V1_PREFIX}/notes/{note_id}",
@@ -362,3 +360,80 @@ async def test_get_note_history_ok(api_client: AsyncClient, mocker):
     data = response.json()
     assert data["note_history"][0]["note_id"] == note_id
     assert data["summarization"] == "Updated mocked summary"
+
+
+@pytest.mark.asyncio
+async def test_get_analytics_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
+
+    user_schema_in = UserSchema(
+        username="user_analytics_1", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    note_data_1 = CreateNoteSchema(title="Test Note 33", text="Content 1")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_1.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    note_data_2 = CreateNoteSchema(title="Test Note 31", text="Content 2")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_2.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    response = await api_client.get(f"{API_V1_PREFIX}/analytics/")
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data
+    assert data["total_notes"] >= 2
+    assert data["total_words"] != 0
+    assert data["avg_words"] != 0
+    assert data["common_words"] != {}
+    assert data["top_longest_notes"] != {}
+    assert data["top_shortest_notes"] != {}
+
+
+@pytest.mark.asyncio
+async def test_get_all_notes_ok(api_client: AsyncClient, mocker):
+    mocker.patch(
+        "api.v1.notes.helpers.create_note_summarization", return_value="Mocked summary"
+    )
+
+    user_schema_in = UserSchema(
+        username="user_analytics_2", password="StrongTestPassword123!"
+    )
+    response = await api_client.post(
+        f"{API_V1_PREFIX}{AUTH_PREFIX}/sign_up", json=user_schema_in.model_dump()
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    data = response.json()
+    token = data["access_token"]
+    note_data_1 = CreateNoteSchema(title="Test Note 33", text="Content 1")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_1.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    note_data_2 = CreateNoteSchema(title="Test Note 31", text="Content 2")
+    await api_client.post(
+        f"{API_V1_PREFIX}/notes/",
+        json=note_data_2.model_dump(),
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    response = await api_client.get(f"{API_V1_PREFIX}/analytics/notes")
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data
+    assert len(data) >= 2

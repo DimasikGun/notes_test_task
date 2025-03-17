@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.utils import validation_error
+from api.v1.analytics.controllers import get_all_notes
 from api.v1.auth.controllers import create_user, get_user, get_user_by_username
 from api.v1.auth.schemas import UserSchema
 from api.v1.auth.security_utils import (
@@ -224,3 +225,40 @@ async def test_delete_note(db_session: AsyncSession):
 
     deleted_note = await get_note(db_session, note.id, user.id)
     assert deleted_note is None
+
+
+@pytest.mark.asyncio
+async def test_get_alL_notes(db_session: AsyncSession):
+    notes = await get_all_notes(db_session)
+    length = len(notes)
+    user_schema_in = UserSchema(
+        username="user_note6", password="StrongTestPassword123!"
+    )
+    user = await create_user(db_session, user_schema_in)
+    note_data_1 = CreateNoteSchema(title="Note 1", text="First note")
+    note_data_2 = CreateNoteSchema(title="Note 2", text="Second note")
+    summarization1 = "some summarization"
+    summarization2 = "some summarization"
+    await create_note(db_session, note_data_1, user.id, summarization1)
+    await create_note(db_session, note_data_2, user.id, summarization2)
+
+    notes = await get_all_notes(db_session)
+    assert length < len(notes)
+    assert notes[-1].title == "Note 2"
+
+
+@pytest.mark.asyncio
+async def test_get_analytics_notes(db_session: AsyncSession):
+    notes = await get_all_notes(db_session)
+    length = len(notes)
+    user_schema_in = UserSchema(
+        username="user_note7", password="StrongTestPassword123!"
+    )
+    user = await create_user(db_session, user_schema_in)
+    note_data_2 = CreateNoteSchema(title="Note 24", text="Second note")
+    summarization2 = "some summarization"
+    await create_note(db_session, note_data_2, user.id, summarization2)
+
+    notes = await get_all_notes(db_session)
+    assert length < len(notes)
+    assert notes[-1].title == "Note 24"

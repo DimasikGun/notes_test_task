@@ -1,0 +1,33 @@
+services:
+  web-app:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.template
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: superpass
+      POSTGRES_USER: postgres
+      POSTGRES_DB: notes_test_task_db
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: localhost
+
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "notes_test_task_db", "-h", "localhost", "-p", "5432", "-U", "postgres" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
